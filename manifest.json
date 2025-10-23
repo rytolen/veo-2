@@ -1,0 +1,21 @@
+{
+  "short_name": "Gemini Suite",
+  "name": "Gemini Creative Suite",
+  "description": "A web application that uses Gemini's Veo 2 model to generate a 9:16 aspect ratio video from a user-uploaded image and an optional text prompt.",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0f172a",
+  "background_color": "#0f172a"
+}

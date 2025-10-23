@@ -1,0 +1,5 @@
+{
+  "name": "Veo 2 Image to Video Generator",
+  "description": "A web application that uses Gemini's Veo 2 model to generate a 9:16 aspect ratio video from a user-uploaded image and an optional text prompt.",
+  "requestFramePermissions": []
+}
