@@ -2,16 +2,29 @@ import React, { useState, useEffect, useCallback } from 'react';
 import ApiKeySelector from './components/ApiKeySelector';
 import ImageToVideo from './components/ImageToVideo';
 import TextToSpeech from './components/TextToSpeech';
+import TikTokGenerator from './components/TikTokGenerator'; // Import baru
 import { hasApiKey, clearApiKey } from './services/apiKeyService';
 
-type View = 'video' | 'tts';
+type View = 'video' | 'tts' | 'tiktok'; // Menambahkan 'tiktok' ke tipe View
 
 const App: React.FC = () => {
     const [apiKeySelected, setApiKeySelected] = useState(false);
     const [activeView, setActiveView] = useState<View>('video');
+    const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
 
     useEffect(() => {
         setApiKeySelected(hasApiKey());
+
+        const handleBeforeInstallPrompt = (e: Event) => {
+            e.preventDefault();
+            setInstallPrompt(e);
+        };
+
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        };
     }, []);
 
     const handleKeySelected = useCallback(() => {
@@ -21,6 +34,18 @@ const App: React.FC = () => {
     const handleChangeApiKey = () => {
         clearApiKey();
         setApiKeySelected(false);
+    };
+
+    const handleInstallClick = async () => {
+        if (!installPrompt) return;
+        
+        // The type for `installPrompt` is `Event`, but it has a `prompt()` method in this context.
+        // We cast it to `any` to access this method.
+        const promptEvent = installPrompt as any;
+        const result = await promptEvent.prompt();
+        
+        console.log(`Install prompt outcome: ${result.outcome}`);
+        setInstallPrompt(null);
     };
 
     const NavButton: React.FC<{ view: View; label: string }> = ({ view, label }) => (
@@ -59,21 +84,35 @@ const App: React.FC = () => {
                             AI-powered content generation
                         </p>
                     </div>
-                    <button 
-                        onClick={handleChangeApiKey}
-                        className="text-xs text-slate-400 hover:text-purple-400 transition-colors bg-slate-800/50 px-3 py-1.5 rounded-md border border-slate-700 hover:border-purple-500"
-                    >
-                        Change Key
-                    </button>
+                    <div className="flex items-center gap-2">
+                         {installPrompt && (
+                            <button
+                                onClick={handleInstallClick}
+                                className="text-xs font-semibold text-white bg-gradient-to-r from-purple-600 to-pink-600 px-3 py-1.5 rounded-md border border-purple-500 hover:opacity-90 transition-opacity"
+                                title="Install App"
+                            >
+                                Install App
+                            </button>
+                        )}
+                        <button 
+                            onClick={handleChangeApiKey}
+                            className="text-xs text-slate-400 hover:text-purple-400 transition-colors bg-slate-800/50 px-3 py-1.5 rounded-md border border-slate-700 hover:border-purple-500"
+                        >
+                            Change Key
+                        </button>
+                    </div>
                 </header>
 
-                <nav className="flex justify-center items-center gap-2 sm:gap-4 mb-8 p-1.5 bg-slate-800/60 rounded-lg border border-slate-700 max-w-xs mx-auto">
+                <nav className="flex justify-center items-center gap-2 sm:gap-4 mb-8 p-1.5 bg-slate-800/60 rounded-lg border border-slate-700 max-w-md mx-auto">
                     <NavButton view="video" label="Image to Video" />
                     <NavButton view="tts" label="Text to Speech" />
+                    <NavButton view="tiktok" label="TikTok Content" />
                 </nav>
 
                 <main>
-                    {activeView === 'video' ? <ImageToVideo /> : <TextToSpeech />}
+                    {activeView === 'video' && <ImageToVideo />}
+                    {activeView === 'tts' && <TextToSpeech />}
+                    {activeView === 'tiktok' && <TikTokGenerator />}
                 </main>
             </div>
         </div>

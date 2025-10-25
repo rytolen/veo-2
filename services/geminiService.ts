@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Modality } from "@google/genai";
 import { createWavBlobUrlFromBase64 } from "../utils/audioUtils";
 import { getApiKey } from "./apiKeyService";
@@ -84,4 +85,60 @@ export const generateSpeech = async (text: string, voice: string): Promise<strin
     }
 
     return createWavBlobUrlFromBase64(base64Audio);
+};
+
+export const generateAffiliateText = async (productCategory: string, price: string): Promise<string> => {
+    if (!productCategory.trim() || !price.trim()) {
+        throw new Error("Product category and price cannot be empty.");
+    }
+
+    const ai = getAuthenticatedAi();
+    const prompt = `Buat skrip promosi afiliasi TikTok yang sangat singkat (1-3 kalimat), padat, dan persuasif untuk produk dalam kategori '${productCategory}'.
+Kalimat harus mengajak audiens untuk segera membeli.
+Sebutkan dengan jelas bahwa harganya sedang promo menjadi '${price}'.
+Gunakan bahasa gaul, antusias, dan ajakan yang kuat seperti 'gercepin', 'wajib punya', atau 'checkout di keranjang kuning'.
+
+PENTING: Hanya berikan teks skripnya saja, tanpa judul atau embel-embel lain seperti "Skrip:" atau "Tentu!".
+
+Contoh output untuk kategori 'Smartwatch' dan harga '99 ribuan':
+Smartwatch secanggih ini harganya cuma 99 ribuan aja, guys! Fitur lengkap, desainnya premium. Buruan gercepin di keranjang kuning sebelum kehabisan!`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+    });
+
+    const text = response.text;
+    if (!text) {
+        throw new Error("Failed to generate text. The model returned an empty response.");
+    }
+    
+    return text.trim();
+};
+
+export const generateTikTokContent = async (productName: string): Promise<string> => {
+    if (!productName.trim()) {
+        throw new Error("Product name cannot be empty.");
+    }
+
+    const ai = getAuthenticatedAi();
+    const prompt = `Buat deskripsi video TikTok yang menarik dan singkat (1-2 kalimat) untuk mempromosikan produk afiliasi '${productName}'. Langsung lanjutkan dengan daftar tagar yang relevan di baris baru.
+
+PENTING: Jangan sertakan judul atau label apa pun seperti "Deskripsi:" atau "Tagar:". Hanya berikan teks deskripsi dan tagar yang bisa langsung disalin.
+
+Contoh:
+Upgrade gayamu dengan jam tangan canggih ini! Desainnya keren, fiturnya lengkap. Checkout di keranjang kuning!
+#racuntiktok #tiktokaffiliate #${productName.toLowerCase().replace(/\s/g, '')} #smartwatchkeren`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+    });
+    
+    const text = response.text;
+    if (!text) {
+        throw new Error("Failed to generate content. The model returned an empty response.");
+    }
+    
+    return text.trim();
 };
