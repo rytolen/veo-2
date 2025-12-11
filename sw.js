@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gemini-creative-suite-v5'; // Incremented version for update
+const CACHE_NAME = 'gemini-creative-suite-v6'; // Incremented version for update
 const APP_SHELL_URLS = [
   '/',
   '/index.html',

@@ -2,20 +2,25 @@
   "short_name": "Gemini Suite",
   "name": "Gemini Creative Suite",
   "description": "A web application that uses Gemini models to generate Text-to-Speech audio and TikTok affiliate content.",
+  "id": "/",
+  "scope": "/",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0f172a",
+  "background_color": "#0f172a",
   "icons": [
     {
       "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgICA8ZGVmcz4KICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojQTY1OUY0OyIgLz4KICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojRUM0OEFCOyIgLz4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPC9kZWZzPgogICAgPHJlY3Qgd2lkdGg9IjE5MiIgaGVpZ2h0PSIxOTIiIHJ4PSIzMiIgZmlsbD0iIzBGMTcyQSIgLz4KICAgIDxwYXRoIGQ9Ik0xMjEuMiA1Ni4zYy0zLjQtMy40LTYuOC02LTEwLjQtNy45LTE0LjUtNy45LTMxLjgtNi40LTQ0LjcgMy42LTE5LjQgMTQuOS0yMy43IDQyLjgtOS41IDYzLjYgNS4xIDcuNSA4LjMgMTQuNyA4LjQgMjIuOWwuMSAxMi42aDI0LjhsLjEtMTAuM2MtLjItNy44LTEuMy0xNC4zLTQtMjAuNC03LjctMTcuOCAxLjgtNDAuMyAyMS4xLTQ3LjZ6TTk4LjQgMTM2LjVWMTIyaC0yNXYxNC41aDI1em0yNC45LTY2LjRjNS43IDYuNyA2LjEgMTYuNy45IDIzLjItOC45IDExLjItMjYuOSA5LjMtMzggMS42LTcuMi01LTkuNy0xNC02LjctMjEuMiA0LjgtMTEuNSAxOS4yLTE2LjggMzEuOC04LjcgNC40IDIuOCA3LjEgNi45IDkuOSA5LjF6IiBmaWxsPSJ1cmwoI2cpIiAvPgo8L3N2Zz4=",
       "type": "image/svg+xml",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgICA8ZGVmcz4KICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojQTY1OUY0OyIgLz4KICAgICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojRUM0OEFCOyIgLz4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPC9kZWZzPgogICAgPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSI4NiIgZmlsbD0iIzBGMTcyQSIgLz4KICAgIDxwYXRoIGQ9Ik0zMjMuMiAxNTAuMmMtOS05LTE4LjEtMTYtMjcuNy0yMS0zOC42LTIxLTg0LjctMTctMTE5LjEgOS43LTUxLjYgMzkuNy02My4xIDExNC0yNS4zIDE2OS41IDEzLjUgMjAgMjIuMiAzOS4yIDIyLjUgNjEuMWwuMiAzMy42aDY2LjJsLjEtMjcuNWMtLjUtMjAuNy0zLjQtMzgtMTAuNi01NC4zLTIwLjYtNDcuNSAzLjYtMTA3LjUgNTYuMy0xMjYuOXoiIGZpbGw9InVybCgjZykiIC8+CiAgICA8cGF0aCBkPSJNMjYyLjUgMzY0di0zOC42aC02Ni43VjM2NGg2Ni43em02Ni40LTE3Ny4xYzE1LjEgMTcuOCAxNi4zIDQ0LjUtMi41IDYxLjgtMjMuNyAyOS44LTcxLjYgMjQuNy0xMDEuMyA0LjQtMTkuMi0xMy40LTI1LjgtMzcuMy0xNy44LTU2LjYgMTIuOC0zMC42IDUxLjItNDQuNyA4NC43LTIzLjMgMTEuNyA3LjQgMTguOSAxOC41IDI2LjUgMjR6IiBmaWxsPSJ1cmwoI2cpIiAvPgo8L3N2Zz4=",
       "type": "image/svg+xml",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
-  ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#0f172a",
-  "background_color": "#0f172a"
+  ]
 }
