@@ -1,20 +1,38 @@
 import React, { useState, useCallback } from 'react';
 import { generateSpeech, generateAffiliateText } from '../services/geminiService';
 
-const voices = ['Kore', 'Puck', 'Zephyr', 'Fenrir', 'Charon'];
+const voices = [
+    { id: 'Algieba', label: 'Algieba (Male - Crisp & Direct)' },
+    { id: 'Aoede', label: 'Aoede (Female - Professional & Confident)' },
+    { id: 'Charon', label: 'Charon (Male - Authoritative & Deep)' },
+    { id: 'Fenrir', label: 'Fenrir (Male - Deep & Intense)' },
+    { id: 'Kore', label: 'Kore (Female - Calm & Soothing)' },
+    { id: 'Leda', label: 'Leda (Female - Sophisticated & Soft)' },
+    { id: 'Mnemosyne', label: 'Mnemosyne (Female - Dreamy & Soft)' },
+    { id: 'Orpheus', label: 'Orpheus (Male - Resonant & Confident)' },
+    { id: 'Puck', label: 'Puck (Male - Energetic & Playful)' },
+    { id: 'Zephyr', label: 'Zephyr (Female - Balanced & Clear)' },
+];
 
 const styles = [
-    { value: 'none', label: 'Default' },
-    { value: 'Speak in a friendly and persuasive affiliate tone: ', label: 'Affiliate' },
+    { value: 'none', label: 'Default (Natural)' },
+    { value: 'Speak in a friendly and persuasive affiliate tone: ', label: 'Affiliate (Friendly)' },
+    { value: 'Speak in a high-energy, hyped-up affiliate tone: ', label: 'Affiliate (Hype)' },
     { value: 'Say cheerfully: ', label: 'Cheerful' },
-    { value: 'Speak in a calm and soothing voice: ', label: 'Calm' },
-    { value: 'Say in a professional and informative tone: ', label: 'Professional' },
+    { value: 'Speak in a calm and soothing voice: ', label: 'Calm / ASMR-ish' },
+    { value: 'Say in a professional and informative tone: ', label: 'Professional / News' },
     { value: 'Exclaim with excitement: ', label: 'Excited' },
+    { value: 'Whisper this softly: ', label: 'Whisper' },
+    { value: 'Speak like a dramatic storyteller: ', label: 'Dramatic / Storyteller' },
+    { value: 'Speak fast and urgently: ', label: 'Urgent / Promo' },
 ];
 
 const products = [
     'Jam Tangan',
     'Smartwatch',
+    'Cincin Jam Tangan',
+    'Tas Wanita',
+    'Sepatu Wanita',
     'Headset Bluetooth',
     'Power Bank',
     'Lampu LED Estetik',
@@ -22,14 +40,15 @@ const products = [
     'T-Shirt Polos',
     'Sepatu Sneakers',
     'Produk Skincare',
+    'Lainnya (Input Manual)',
 ];
 
-const prices = ['19k', '29k', '39k', '49k', '99k', 'Custom'];
+const prices = ['19k', '29k', '39k', '49k', '99k', 'Custom', 'Tanpa Harga'];
 
 
 const TextToSpeech: React.FC = () => {
     const [text, setText] = useState('');
-    const [selectedVoice, setSelectedVoice] = useState(voices[0]);
+    const [selectedVoice, setSelectedVoice] = useState(voices[4].id); // Default to Kore
     const [selectedStyle, setSelectedStyle] = useState(styles[1].value); // Default to Affiliate style
     const [isLoading, setIsLoading] = useState(false);
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -38,6 +57,7 @@ const TextToSpeech: React.FC = () => {
 
     // State for the affiliate text generator
     const [productCategory, setProductCategory] = useState(products[0]);
+    const [customProductCategory, setCustomProductCategory] = useState('');
     const [priceOption, setPriceOption] = useState(prices[2]); // Default to 39k
     const [customPrice, setCustomPrice] = useState('');
     const [isGeneratingText, setIsGeneratingText] = useState(false);
@@ -48,18 +68,29 @@ const TextToSpeech: React.FC = () => {
         setTextGeneratorError(null);
         setError(null);
         try {
-            const finalPrice = priceOption === 'Custom' ? customPrice : priceOption.replace('k', ' ribuan');
-            if (!finalPrice.trim()) {
-                throw new Error("Custom price cannot be empty.");
+            const finalProduct = productCategory === 'Lainnya (Input Manual)' ? customProductCategory : productCategory;
+            if (!finalProduct.trim()) {
+                throw new Error("Product category cannot be empty.");
             }
-            const generatedText = await generateAffiliateText(productCategory, finalPrice);
+
+            let finalPrice = '';
+            if (priceOption === 'Custom') {
+                if (!customPrice.trim()) {
+                    throw new Error("Custom price cannot be empty.");
+                }
+                finalPrice = customPrice;
+            } else if (priceOption !== 'Tanpa Harga') {
+                finalPrice = priceOption.replace('k', ' ribuan');
+            }
+            
+            const generatedText = await generateAffiliateText(finalProduct, finalPrice);
             setText(generatedText);
         } catch (e: any) {
             setTextGeneratorError(e.message || 'Failed to generate text.');
         } finally {
             setIsGeneratingText(false);
         }
-    }, [productCategory, priceOption, customPrice]);
+    }, [productCategory, customProductCategory, priceOption, customPrice]);
 
 
     const handleGenerateSpeech = useCallback(async () => {
@@ -127,6 +158,24 @@ const TextToSpeech: React.FC = () => {
                             </select>
                         </div>
                     </div>
+
+                    {productCategory === 'Lainnya (Input Manual)' && (
+                        <div>
+                            <label htmlFor="custom-product-category" className="block text-sm font-medium text-slate-300 mb-2">
+                                Manual Product Name
+                            </label>
+                            <input
+                                id="custom-product-category"
+                                type="text"
+                                value={customProductCategory}
+                                onChange={(e) => setCustomProductCategory(e.target.value)}
+                                className="w-full bg-slate-900/70 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200 placeholder-slate-500"
+                                placeholder="e.g., Kemeja Flanel Pria"
+                                disabled={isGeneratingText}
+                            />
+                        </div>
+                    )}
+                    
                     {priceOption === 'Custom' && (
                         <div>
                             <label htmlFor="custom-price" className="block text-sm font-medium text-slate-300 mb-2">
@@ -191,7 +240,7 @@ const TextToSpeech: React.FC = () => {
                             className="w-full bg-slate-900/70 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
                         >
                             {voices.map(voice => (
-                                <option key={voice} value={voice}>{voice}</option>
+                                <option key={voice.id} value={voice.id}>{voice.label}</option>
                             ))}
                         </select>
                     </div>

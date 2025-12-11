@@ -4,6 +4,9 @@ import { generateTikTokContent } from '../services/geminiService';
 const products = [
     'Jam Tangan',
     'Smartwatch',
+    'Cincin Jam Tangan',
+    'Tas Wanita',
+    'Sepatu Wanita',
     'Headset Bluetooth',
     'Power Bank',
     'Lampu LED Estetik',
@@ -11,10 +14,12 @@ const products = [
     'T-Shirt Polos',
     'Sepatu Sneakers',
     'Produk Skincare',
+    'Lainnya (Input Manual)',
 ];
 
 const TikTokGenerator: React.FC = () => {
     const [selectedProduct, setSelectedProduct] = useState(products[0]);
+    const [customProduct, setCustomProduct] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [generatedContent, setGeneratedContent] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -26,14 +31,18 @@ const TikTokGenerator: React.FC = () => {
         setGeneratedContent(null);
         setIsCopied(false);
         try {
-            const content = await generateTikTokContent(selectedProduct);
+            const finalProduct = selectedProduct === 'Lainnya (Input Manual)' ? customProduct : selectedProduct;
+            if (!finalProduct.trim()) {
+                throw new Error("Product name cannot be empty.");
+            }
+            const content = await generateTikTokContent(finalProduct);
             setGeneratedContent(content);
         } catch (e: any) {
             setError(e.message || 'Failed to generate content.');
         } finally {
             setIsLoading(false);
         }
-    }, [selectedProduct]);
+    }, [selectedProduct, customProduct]);
 
     const handleCopy = () => {
         if (generatedContent) {
@@ -68,6 +77,23 @@ const TikTokGenerator: React.FC = () => {
                     </select>
                 </div>
                 
+                {selectedProduct === 'Lainnya (Input Manual)' && (
+                    <div>
+                        <label htmlFor="custom-product" className="block text-sm font-medium text-slate-300 mb-2">
+                            Manual Product Name
+                        </label>
+                        <input
+                            id="custom-product"
+                            type="text"
+                            value={customProduct}
+                            onChange={(e) => setCustomProduct(e.target.value)}
+                            className="w-full bg-slate-900/70 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200 placeholder-slate-500"
+                            placeholder="e.g., Kemeja Flanel Pria"
+                            disabled={isLoading}
+                        />
+                    </div>
+                )}
+
                 <button
                     onClick={handleGenerate}
                     disabled={isLoading}

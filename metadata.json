@@ -1,5 +1,5 @@
 {
-  "name": "Veo 2 Image to Video Generator",
-  "description": "A web application that uses Gemini's Veo 2 model to generate a 9:16 aspect ratio video from a user-uploaded image and an optional text prompt.",
+  "name": "Gemini Content Generator",
+  "description": "A web application that uses Gemini models to generate Text-to-Speech audio and TikTok affiliate content.",
   "requestFramePermissions": []
 }

@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ApiKeySelector from './components/ApiKeySelector';
-import ImageToVideo from './components/ImageToVideo';
 import TextToSpeech from './components/TextToSpeech';
-import TikTokGenerator from './components/TikTokGenerator'; // Import baru
+import TikTokGenerator from './components/TikTokGenerator';
 import { hasApiKey, clearApiKey } from './services/apiKeyService';
 
-type View = 'video' | 'tts' | 'tiktok'; // Menambahkan 'tiktok' ke tipe View
+type View = 'tts' | 'tiktok';
 
 const App: React.FC = () => {
     const [apiKeySelected, setApiKeySelected] = useState(false);
-    const [activeView, setActiveView] = useState<View>('video');
+    const [activeView, setActiveView] = useState<View>('tts');
     const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
 
     useEffect(() => {
@@ -104,13 +103,11 @@ const App: React.FC = () => {
                 </header>
 
                 <nav className="flex justify-center items-center gap-2 sm:gap-4 mb-8 p-1.5 bg-slate-800/60 rounded-lg border border-slate-700 max-w-md mx-auto">
-                    <NavButton view="video" label="Image to Video" />
                     <NavButton view="tts" label="Text to Speech" />
                     <NavButton view="tiktok" label="TikTok Content" />
                 </nav>
 
                 <main>
-                    {activeView === 'video' && <ImageToVideo />}
                     {activeView === 'tts' && <TextToSpeech />}
                     {activeView === 'tiktok' && <TikTokGenerator />}
                 </main>

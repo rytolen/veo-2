@@ -1,5 +1,4 @@
 
-
 import { GoogleGenAI, Modality } from "@google/genai";
 import { createWavBlobUrlFromBase64 } from "../utils/audioUtils";
 import { getApiKey } from "./apiKeyService";
@@ -88,20 +87,41 @@ export const generateSpeech = async (text: string, voice: string): Promise<strin
 };
 
 export const generateAffiliateText = async (productCategory: string, price: string): Promise<string> => {
-    if (!productCategory.trim() || !price.trim()) {
-        throw new Error("Product category and price cannot be empty.");
+    if (!productCategory.trim()) {
+        throw new Error("Product category cannot be empty.");
     }
 
     const ai = getAuthenticatedAi();
-    const prompt = `Buat skrip promosi afiliasi TikTok yang sangat singkat (1-3 kalimat), padat, dan persuasif untuk produk dalam kategori '${productCategory}'.
-Kalimat harus mengajak audiens untuk segera membeli.
-Sebutkan dengan jelas bahwa harganya sedang promo menjadi '${price}'.
-Gunakan bahasa gaul, antusias, dan ajakan yang kuat seperti 'gercepin', 'wajib punya', atau 'checkout di keranjang kuning'.
+    let prompt: string;
 
-PENTING: Hanya berikan teks skripnya saja, tanpa judul atau embel-embel lain seperti "Skrip:" atau "Tentu!".
+    const baseInstruction = `
+    Tugas: Buat skrip voice-over untuk video TikTok afiliasi.
+    Durasi: Maksimal 10 detik (sekitar 20-30 kata).
+    Tone: Santai, Elegan, dan Profesional (hindari bahasa yang terlalu "lebay" atau "hype" berlebihan).
+    Struktur Wajib:
+    1. Deskripsi Singkat: Jelaskan solusi atau keunggulan utama produk dalam 1 kalimat yang mengalir.
+    2. Closing: Kalimat penutup yang meyakinkan.
+    3. CTA (Call to Action): Wajib diakhiri dengan kalimat "Checkout di keranjang kuning sekarang".
+    
+    PENTING: Output hanya teks skripnya saja, jangan pakai tanda kutip atau label.`;
 
-Contoh output untuk kategori 'Smartwatch' dan harga '99 ribuan':
-Smartwatch secanggih ini harganya cuma 99 ribuan aja, guys! Fitur lengkap, desainnya premium. Buruan gercepin di keranjang kuning sebelum kehabisan!`;
+    if (price && price.trim() !== '') {
+        prompt = `${baseInstruction}
+        
+        Produk: '${productCategory}'
+        Harga Promo: '${price}'
+        
+        Contoh Output:
+        Tampil lebih percaya diri dengan Smartwatch desain premium ini, fitur kesehatannya lengkap banget. Mumpung lagi promo cuma 99 ribuan aja. Yuk, checkout di keranjang kuning sekarang.`;
+    } else {
+        prompt = `${baseInstruction}
+        
+        Produk: '${productCategory}'
+        Fokus: Keunggulan kualitas atau stok terbatas.
+        
+        Contoh Output:
+        Smartwatch ini punya desain premium yang bikin penampilan kamu makin elegan setiap hari. Stoknya makin menipis nih. Jangan sampai kehabisan, checkout di keranjang kuning sekarang.`;
+    }
 
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
