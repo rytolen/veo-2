@@ -1,5 +1,8 @@
-import React, { useState, useCallback } from 'react';
-import { generateSpeech, generateAffiliateText } from '../services/geminiService';
+
+import React, { useState, useCallback, useEffect } from 'react';
+import { generateSpeech, generateAffiliateText, optimizeScript, generateScriptFromImage } from '../services/geminiService';
+import ImageUploader from './ImageUploader';
+import { fileToBase64 } from '../utils/fileUtils';
 
 const voices = [
     { id: 'Algieba', label: 'Algieba (Male - Crisp & Direct)' },
@@ -55,42 +58,97 @@ const TextToSpeech: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [generationCount, setGenerationCount] = useState(0);
 
-    // State for the affiliate text generator
+    // Generator State
+    const [scriptSource, setScriptSource] = useState<'category' | 'image'>('category');
+    
+    // Category Generator State
     const [productCategory, setProductCategory] = useState(products[0]);
     const [customProductCategory, setCustomProductCategory] = useState('');
     const [priceOption, setPriceOption] = useState(prices[2]); // Default to 39k
     const [customPrice, setCustomPrice] = useState('');
+    
+    // Image Generator State
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+
     const [isGeneratingText, setIsGeneratingText] = useState(false);
+    const [isOptimizing, setIsOptimizing] = useState(false);
     const [textGeneratorError, setTextGeneratorError] = useState<string | null>(null);
 
-    const handleGenerateAffiliateText = useCallback(async () => {
+    useEffect(() => {
+        if (imageFile) {
+            const objectUrl = URL.createObjectURL(imageFile);
+            setImagePreview(objectUrl);
+            return () => URL.revokeObjectURL(objectUrl);
+        } else {
+            setImagePreview(null);
+        }
+    }, [imageFile]);
+
+    const handleImageSelect = (file: File) => {
+        setImageFile(file);
+    };
+
+    const handleGenerateScript = useCallback(async () => {
         setIsGeneratingText(true);
         setTextGeneratorError(null);
         setError(null);
         try {
-            const finalProduct = productCategory === 'Lainnya (Input Manual)' ? customProductCategory : productCategory;
-            if (!finalProduct.trim()) {
-                throw new Error("Product category cannot be empty.");
-            }
+            let generatedText = '';
 
-            let finalPrice = '';
-            if (priceOption === 'Custom') {
-                if (!customPrice.trim()) {
-                    throw new Error("Custom price cannot be empty.");
+            if (scriptSource === 'image') {
+                if (!imageFile) throw new Error("Please upload an image first.");
+                const { base64, mimeType } = await fileToBase64(imageFile);
+                
+                // We pass the category as a context hint if it's selected, 
+                // but the image is the main source.
+                const hintCategory = productCategory !== 'Lainnya (Input Manual)' ? productCategory : customProductCategory;
+                
+                generatedText = await generateScriptFromImage(base64, mimeType, hintCategory);
+            } else {
+                const finalProduct = productCategory === 'Lainnya (Input Manual)' ? customProductCategory : productCategory;
+                if (!finalProduct.trim()) {
+                    throw new Error("Product category cannot be empty.");
                 }
-                finalPrice = customPrice;
-            } else if (priceOption !== 'Tanpa Harga') {
-                finalPrice = priceOption.replace('k', ' ribuan');
+
+                let finalPrice = '';
+                if (priceOption === 'Custom') {
+                    if (!customPrice.trim()) {
+                        throw new Error("Custom price cannot be empty.");
+                    }
+                    finalPrice = customPrice;
+                } else if (priceOption !== 'Tanpa Harga') {
+                    finalPrice = priceOption.replace('k', ' ribuan');
+                }
+                
+                generatedText = await generateAffiliateText(finalProduct, finalPrice);
             }
             
-            const generatedText = await generateAffiliateText(finalProduct, finalPrice);
             setText(generatedText);
         } catch (e: any) {
             setTextGeneratorError(e.message || 'Failed to generate text.');
         } finally {
             setIsGeneratingText(false);
         }
-    }, [productCategory, customProductCategory, priceOption, customPrice]);
+    }, [scriptSource, imageFile, productCategory, customProductCategory, priceOption, customPrice]);
+
+    const handleOptimizeText = useCallback(async () => {
+        if (!text.trim()) {
+             setTextGeneratorError("Please enter some text to optimize first.");
+             return;
+        }
+        setIsOptimizing(true);
+        setTextGeneratorError(null);
+        setError(null);
+        try {
+            const optimized = await optimizeScript(text);
+            setText(optimized);
+        } catch (e: any) {
+             setTextGeneratorError(e.message || 'Failed to optimize text.');
+        } finally {
+            setIsOptimizing(false);
+        }
+    }, [text]);
 
 
     const handleGenerateSpeech = useCallback(async () => {
@@ -123,43 +181,83 @@ const TextToSpeech: React.FC = () => {
     return (
         <div className="bg-slate-800/30 backdrop-blur-lg rounded-2xl shadow-2xl p-6 sm:p-8 border border-white/10">
             <div className="flex flex-col space-y-6 max-w-2xl mx-auto">
-                {/* Affiliate Text Generator Section */}
+                
+                {/* Script Generator Section */}
                 <div className="p-4 bg-slate-900/40 rounded-lg border border-slate-700 space-y-4">
                     <h3 className="text-lg font-semibold text-slate-200 text-center">
-                        Quick Affiliate Script Generator
+                        Quick Script Generator
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="product-category" className="block text-sm font-medium text-slate-300 mb-2">
-                                Product Category
-                            </label>
-                            <select
-                                id="product-category"
-                                value={productCategory}
-                                onChange={(e) => setProductCategory(e.target.value)}
-                                disabled={isGeneratingText}
-                                className="w-full bg-slate-900/70 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
-                            >
-                                {products.map(p => <option key={p} value={p}>{p}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label htmlFor="price-option" className="block text-sm font-medium text-slate-300 mb-2">
-                                Price
-                            </label>
-                            <select
-                                id="price-option"
-                                value={priceOption}
-                                onChange={(e) => setPriceOption(e.target.value)}
-                                disabled={isGeneratingText}
-                                className="w-full bg-slate-900/70 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
-                            >
-                                {prices.map(p => <option key={p} value={p}>{p}</option>)}
-                            </select>
-                        </div>
+
+                    {/* Tabs */}
+                    <div className="flex p-1 space-x-1 bg-slate-800 rounded-lg">
+                        <button
+                            className={`w-full py-2 text-sm font-medium rounded-md transition-all ${
+                                scriptSource === 'category' 
+                                ? 'bg-slate-600 text-white shadow' 
+                                : 'text-slate-400 hover:text-white'
+                            }`}
+                            onClick={() => setScriptSource('category')}
+                        >
+                            From Category List
+                        </button>
+                        <button
+                            className={`w-full py-2 text-sm font-medium rounded-md transition-all ${
+                                scriptSource === 'image' 
+                                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow' 
+                                : 'text-slate-400 hover:text-white'
+                            }`}
+                            onClick={() => setScriptSource('image')}
+                        >
+                            From Product Image
+                        </button>
                     </div>
 
-                    {productCategory === 'Lainnya (Input Manual)' && (
+                    {/* Category Mode */}
+                    {scriptSource === 'category' && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fadeIn">
+                            <div>
+                                <label htmlFor="product-category" className="block text-sm font-medium text-slate-300 mb-2">
+                                    Product Category
+                                </label>
+                                <select
+                                    id="product-category"
+                                    value={productCategory}
+                                    onChange={(e) => setProductCategory(e.target.value)}
+                                    disabled={isGeneratingText}
+                                    className="w-full bg-slate-900/70 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+                                >
+                                    {products.map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="price-option" className="block text-sm font-medium text-slate-300 mb-2">
+                                    Price
+                                </label>
+                                <select
+                                    id="price-option"
+                                    value={priceOption}
+                                    onChange={(e) => setPriceOption(e.target.value)}
+                                    disabled={isGeneratingText}
+                                    className="w-full bg-slate-900/70 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+                                >
+                                    {prices.map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Image Mode */}
+                    {scriptSource === 'image' && (
+                        <div className="animate-fadeIn">
+                            <ImageUploader onImageSelect={handleImageSelect} imagePreviewUrl={imagePreview} />
+                            <p className="text-xs text-slate-500 mt-2 text-center">
+                                AI will analyze your image and write a script automatically.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Additional Inputs for Custom/Manual options in Category Mode */}
+                    {scriptSource === 'category' && productCategory === 'Lainnya (Input Manual)' && (
                         <div>
                             <label htmlFor="custom-product-category" className="block text-sm font-medium text-slate-300 mb-2">
                                 Manual Product Name
@@ -176,7 +274,7 @@ const TextToSpeech: React.FC = () => {
                         </div>
                     )}
                     
-                    {priceOption === 'Custom' && (
+                    {scriptSource === 'category' && priceOption === 'Custom' && (
                         <div>
                             <label htmlFor="custom-price" className="block text-sm font-medium text-slate-300 mb-2">
                                 Custom Price (e.g., "150 ribuan")
@@ -192,17 +290,19 @@ const TextToSpeech: React.FC = () => {
                             />
                         </div>
                     )}
+
                     <button
-                        onClick={handleGenerateAffiliateText}
-                        disabled={isGeneratingText}
+                        onClick={handleGenerateScript}
+                        disabled={isGeneratingText || isOptimizing || (scriptSource === 'image' && !imageFile)}
                         className="w-full py-2 px-4 text-base font-semibold rounded-lg transition-all duration-300 ease-in-out bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:shadow-lg hover:shadow-cyan-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {isGeneratingText ? 'Generating Text...' : '✨ Generate Script'}
+                        {isGeneratingText ? 'Generating Script...' : scriptSource === 'image' ? '✨ Analyze Image & Write Script' : '✨ Generate Script'}
                     </button>
+                    
                     {isGeneratingText && (
                         <div className="flex justify-center items-center gap-2 text-sm text-slate-400">
                             <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-cyan-500"></div>
-                            <span>AI is writing...</span>
+                            <span>AI is thinking...</span>
                         </div>
                     )}
                     {textGeneratorError && (
@@ -212,21 +312,43 @@ const TextToSpeech: React.FC = () => {
                     )}
                 </div>
 
+                {/* Main Text Area */}
                 <div>
-                    <label htmlFor="tts-text" className="block text-sm font-medium text-slate-300 mb-2">
-                        Text to Synthesize
-                    </label>
+                    <div className="flex justify-between items-center mb-2">
+                        <label htmlFor="tts-text" className="block text-sm font-medium text-slate-300">
+                            Text to Synthesize
+                        </label>
+                        <button
+                            onClick={handleOptimizeText}
+                            disabled={isOptimizing || isGeneratingText || !text}
+                            className="text-xs bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 px-3 py-1 rounded-full border border-purple-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                            title="Rewrite current text to be 10s Hook+CTA style"
+                        >
+                           {isOptimizing ? (
+                               <>
+                                <span className="w-3 h-3 border-2 border-purple-200 border-t-transparent rounded-full animate-spin"></span>
+                                Optimizing...
+                               </>
+                           ) : (
+                               <>🪄 Optimize (10s)</>
+                           )}
+                        </button>
+                    </div>
                     <textarea
                         id="tts-text"
                         rows={6}
                         className="w-full bg-slate-900/70 border border-slate-700 rounded-lg p-3 text-slate-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition duration-200 resize-none placeholder-slate-500"
-                        placeholder="Generate a script above or enter your own text to convert to speech..."
+                        placeholder={scriptSource === 'image' ? "Upload an image and click Generate to see the script here..." : "Generate a script above or enter your own text..."}
                         value={text}
                         onChange={(e) => setText(e.target.value)}
-                        disabled={isLoading}
+                        disabled={isLoading || isOptimizing}
                     />
+                     <p className="text-xs text-slate-500 mt-1 text-right">
+                        {text.trim().split(/\s+/).filter(Boolean).length} words
+                    </p>
                 </div>
 
+                {/* Voice & Style Controls */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
                         <label htmlFor="voice-select" className="block text-sm font-medium text-slate-300 mb-2">
@@ -281,7 +403,6 @@ const TextToSpeech: React.FC = () => {
                         <p className="text-slate-400 mt-2 text-sm">Synthesizing audio...</p>
                     </div>
                 )}
-
 
                 {audioUrl && !isLoading && (
                     <div className="mt-4 p-3 bg-slate-900/50 rounded-lg border border-slate-700">

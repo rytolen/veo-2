@@ -3,59 +3,12 @@ import { GoogleGenAI, Modality } from "@google/genai";
 import { createWavBlobUrlFromBase64 } from "../utils/audioUtils";
 import { getApiKey } from "./apiKeyService";
 
-// Polling interval in milliseconds
-const POLLING_INTERVAL = 10000;
-
 const getAuthenticatedAi = () => {
     const apiKey = getApiKey();
     if (!apiKey) {
         throw new Error("API Key not found. Please set your API Key.");
     }
     return new GoogleGenAI({ apiKey });
-};
-
-export const generateVideoFromImage = async (base64Image: string, mimeType: string, prompt: string): Promise<string> => {
-    const ai = getAuthenticatedAi();
-    const apiKey = getApiKey(); // Also needed for the fetch call
-
-    let operation = await ai.models.generateVideos({
-        model: 'veo-2.0-generate-001',
-        prompt: prompt || 'Animate this image beautifully.', // Provide a default prompt if empty
-        image: {
-            imageBytes: base64Image,
-            mimeType: mimeType,
-        },
-        config: {
-            numberOfVideos: 1,
-            aspectRatio: '9:16'
-        }
-    });
-
-    while (!operation.done) {
-        await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL));
-        operation = await ai.operations.getVideosOperation({ operation: operation });
-    }
-
-    const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-
-    if (!downloadLink) {
-        throw new Error("Video generation succeeded, but no download link was found.");
-    }
-    
-    // The response.body contains the MP4 bytes. You must append an API key when fetching from the download link.
-    const response = await fetch(`${downloadLink}&key=${apiKey}`);
-    
-    if (!response.ok) {
-        const errorBody = await response.text();
-        console.error("Video download failed:", errorBody);
-        if (response.status === 403 || response.status === 400) {
-             throw new Error("API Key is invalid or lacks permissions to access the video file.");
-        }
-        throw new Error(`Failed to download video: ${response.statusText}`);
-    }
-
-    const videoBlob = await response.blob();
-    return URL.createObjectURL(videoBlob);
 };
 
 export const generateSpeech = async (text: string, voice: string): Promise<string> => {
@@ -86,41 +39,103 @@ export const generateSpeech = async (text: string, voice: string): Promise<strin
     return createWavBlobUrlFromBase64(base64Audio);
 };
 
+// Helper function to get a random hook to avoid templates
+const getRandomHook = () => {
+    const hooks = [
+        "Mulai dengan pertanyaan retoris yang relatable (Contoh: 'Pernah gak sih lo ngerasa...?').",
+        "Mulai dengan ekspresi kaget atau kagum (Contoh: 'Jujurly gue kaget banget sama hasilnya...').",
+        "Mulai dengan menunjuk masalah spesifik (Contoh: 'Buat lo yang sering badmood gara-gara...').",
+        "Mulai dengan solusi 'to-the-point' (Contoh: 'Ini dia rahasia tampil kece tanpa ribet...').",
+        "Mulai dengan ajakan santai (Contoh: 'Sini gue kasih tau racun baru...').",
+        "Mulai dengan statement kontroversial/unik (Contoh: 'Siapa bilang barang murah gak bisa bagus?')."
+    ];
+    return hooks[Math.floor(Math.random() * hooks.length)];
+};
+
+export const generateScriptFromImage = async (base64Image: string, mimeType: string, productCategory?: string): Promise<string> => {
+    const ai = getAuthenticatedAi();
+    const randomHook = getRandomHook();
+
+    let prompt = `Analisis gambar ini dengan teliti.`;
+    
+    if (productCategory && productCategory !== 'Lainnya (Umum)') {
+        prompt += `\nKonteks Produk: ${productCategory}.\n`;
+    }
+
+    prompt += `
+    TUGAS:
+    Bertindaklah sebagai teman tongkrongan (Bestie Mode). 
+    Buatkan naskah voice-over TikTok **maksimal 10 detik** untuk mempromosikan produk di gambar tersebut.
+    
+    STYLE GUIDELINE:
+    1. **Bahasa:** Bahasa Indonesia percakapan sehari-hari/gaul (Lo/Gue, anjay, banget, nih). Jangan kaku.
+    2. **Feel/Vibes:** Deskripsikan visual produk di gambar (warnanya, bentuknya, atau kesannya) lalu hubungkan dengan manfaatnya.
+    3. **ANTI TEMPLATE:** Jangan gunakan kalimat pembuka standar. Gunakan variasi.
+    4. **Angle Hook:** ${randomHook}
+    5. **CTA:** Akhiri dengan: "Cek keranjang kuning sekarang".
+
+    Output: Hanya teks naskah final.
+    `;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: {
+            parts: [
+                { inlineData: { mimeType, data: base64Image } },
+                { text: prompt }
+            ]
+        }
+    });
+
+    const text = response.text;
+    if (!text) {
+        throw new Error("Failed to generate script from image.");
+    }
+    return text.trim();
+};
+
 export const generateAffiliateText = async (productCategory: string, price: string): Promise<string> => {
     if (!productCategory.trim()) {
         throw new Error("Product category cannot be empty.");
     }
 
     const ai = getAuthenticatedAi();
-    let prompt: string;
+    const randomHook = getRandomHook();
 
     const baseInstruction = `
-    Tugas: Buat skrip voice-over untuk video TikTok afiliasi.
-    Durasi: Maksimal 10 detik (sekitar 20-30 kata).
-    Tone: Santai, Elegan, dan Profesional (hindari bahasa yang terlalu "lebay" atau "hype" berlebihan).
-    Struktur Wajib:
-    1. Deskripsi Singkat: Jelaskan solusi atau keunggulan utama produk dalam 1 kalimat yang mengalir.
-    2. Closing: Kalimat penutup yang meyakinkan.
-    3. CTA (Call to Action): Wajib diakhiri dengan kalimat "Checkout di keranjang kuning sekarang".
+    Bertindaklah sebagai teman tongkrongan yang lagi merekomendasikan barang bagus (Bestie Mode). 
+    Buatkan naskah voice-over TikTok **maksimal 10 detik** (sekitar 20-25 kata).
     
-    PENTING: Output hanya teks skripnya saja, jangan pakai tanda kutip atau label.`;
+    STYLE GUIDELINE:
+    1. **Bahasa:** Gunakan Bahasa Indonesia percakapan sehari-hari yang luwes (Lo/Gue, anjay, banget, nih). HINDARI kata baku atau kaku.
+    2. **Feel/Vibes:** Fokus pada "experience" atau rasa saat pakai produk.
+    3. **PENTING - ANTI TEMPLATE:** 
+       - JANGAN SELALU MULAI dengan kata "Sekali semprot", "Sekali pakai", atau "Produk ini". Itu membosankan.
+       - Gunakan variasi kata pembuka yang beda setiap kali generate.
+    4. **Angle Hook Kali Ini:** ${randomHook}
+    5. **CTA:** Wajib diakhiri dengan: "Cek keranjang kuning sekarang" (atau variasi mirip).
+    
+    Output: Hanya teks naskah final.
+    `;
+
+    let prompt: string;
 
     if (price && price.trim() !== '') {
         prompt = `${baseInstruction}
         
         Produk: '${productCategory}'
-        Harga Promo: '${price}'
+        Harga: '${price}'
         
-        Contoh Output:
-        Tampil lebih percaya diri dengan Smartwatch desain premium ini, fitur kesehatannya lengkap banget. Mumpung lagi promo cuma 99 ribuan aja. Yuk, checkout di keranjang kuning sekarang.`;
+        Ingat: Jangan kaku. Buat seolah lo lagi ngomong langsung ke temen deket.
+        `;
     } else {
         prompt = `${baseInstruction}
         
         Produk: '${productCategory}'
-        Fokus: Keunggulan kualitas atau stok terbatas.
+        Fokus: Kualitas/Manfaat utama.
         
-        Contoh Output:
-        Smartwatch ini punya desain premium yang bikin penampilan kamu makin elegan setiap hari. Stoknya makin menipis nih. Jangan sampai kehabisan, checkout di keranjang kuning sekarang.`;
+        Ingat: Jangan kaku. Eksplorasi kalimat pembuka yang menarik selain "Sekali pakai".
+        `;
     }
 
     const response = await ai.models.generateContent({
@@ -131,6 +146,49 @@ export const generateAffiliateText = async (productCategory: string, price: stri
     const text = response.text;
     if (!text) {
         throw new Error("Failed to generate text. The model returned an empty response.");
+    }
+    
+    return text.trim();
+};
+
+export const optimizeScript = async (originalText: string): Promise<string> => {
+    if (!originalText.trim()) {
+        throw new Error("Input text cannot be empty.");
+    }
+
+    const ai = getAuthenticatedAi();
+    
+    const hooks = [
+        "pertanyaan", 
+        "ekspresi kagum", 
+        "masalah relatable", 
+        "ajakan langsung"
+    ];
+    const randomHookType = hooks[Math.floor(Math.random() * hooks.length)];
+
+    const prompt = `
+    Rewrite teks berikut jadi naskah TikTok yang super santai, natural, dan gak kaku (durasi max 10 detik).
+    
+    Teks Asli: "${originalText}"
+    
+    Instruksi Rewrite:
+    1. Gunakan bahasa "lo/gue" atau bahasa lisan yang mengalir.
+    2. JANGAN GUNAKAN pola "Sekali semprot..." atau template kaku lainnya.
+    3. Coba mulai kalimat dengan gaya: ${randomHookType}.
+    4. Buat lebih bervariasi dan tidak terdengar seperti robot.
+    5. WAJIB Ending: "Cek keranjang kuning sekarang" (atau sejenisnya).
+    
+    Output: Hanya teks hasil rewrite.
+    `;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+    });
+
+    const text = response.text;
+    if (!text) {
+        throw new Error("Failed to optimize text.");
     }
     
     return text.trim();

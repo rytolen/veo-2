@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import ApiKeySelector from './components/ApiKeySelector';
 import TextToSpeech from './components/TextToSpeech';
@@ -37,12 +38,8 @@ const App: React.FC = () => {
 
     const handleInstallClick = async () => {
         if (!installPrompt) return;
-        
-        // The type for `installPrompt` is `Event`, but it has a `prompt()` method in this context.
-        // We cast it to `any` to access this method.
         const promptEvent = installPrompt as any;
         const result = await promptEvent.prompt();
-        
         console.log(`Install prompt outcome: ${result.outcome}`);
         setInstallPrompt(null);
     };
@@ -50,7 +47,7 @@ const App: React.FC = () => {
     const NavButton: React.FC<{ view: View; label: string }> = ({ view, label }) => (
         <button
             onClick={() => setActiveView(view)}
-            className={`relative px-4 py-2 text-sm sm:text-base font-medium rounded-md transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${
+            className={`relative px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${
                 activeView === view
                     ? 'text-white'
                     : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
@@ -76,10 +73,10 @@ const App: React.FC = () => {
             <div className="w-full max-w-5xl mx-auto">
                 <header className="flex justify-between items-center mb-6 sm:mb-8">
                     <div className="text-left">
-                        <h1 className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">
+                        <h1 className="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">
                             Gemini Creative Suite
                         </h1>
-                        <p className="mt-1 text-sm sm:text-base text-slate-400">
+                        <p className="mt-1 text-xs sm:text-base text-slate-400">
                             AI-powered content generation
                         </p>
                     </div>
@@ -102,9 +99,9 @@ const App: React.FC = () => {
                     </div>
                 </header>
 
-                <nav className="flex justify-center items-center gap-2 sm:gap-4 mb-8 p-1.5 bg-slate-800/60 rounded-lg border border-slate-700 max-w-md mx-auto">
+                <nav className="flex flex-wrap justify-center items-center gap-2 mb-8 p-1.5 bg-slate-800/60 rounded-lg border border-slate-700 w-full sm:w-auto mx-auto">
                     <NavButton view="tts" label="Text to Speech" />
-                    <NavButton view="tiktok" label="TikTok Content" />
+                    <NavButton view="tiktok" label="TikTok Script" />
                 </nav>
 
                 <main>
